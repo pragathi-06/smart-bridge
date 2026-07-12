@@ -1,161 +1,99 @@
+
+# Smart Bridge v2.0 (starter)
 import streamlit as st
 from google import genai
 from dotenv import load_dotenv
-import os
-import wikipedia
+import os, wikipedia
 
-# Load API Key
 load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY")
-
+api_key=os.getenv("GEMINI_API_KEY")
 if not api_key:
-    st.error("Gemini API key not found. Please check your .env file.")
+    st.error("Gemini API key not found.")
     st.stop()
 
-# Gemini Client
-client = genai.Client(api_key=api_key)
+client=genai.Client(api_key=api_key)
 
+st.set_page_config(page_title="Smart Bridge v2.0",
+                   page_icon="🤝",
+                   layout="wide",
+                   initial_sidebar_state="expanded")
 
-# Page Configuration
-st.set_page_config(
-    page_title="Smart Bridge",
-    page_icon="🤝",
-    layout="centered"
-)
+if "history" not in st.session_state:
+    st.session_state.history=[]
+
 with st.sidebar:
-    st.header("🤝 Smart Bridge")
-    st.write("AI-Powered Personalized Networking Assistant")
-    st.write("---")
-    st.write("### Features")
-    st.write("✅ AI Conversation Starters")
+    st.title("🤝 Smart Bridge v2.0")
+    st.markdown("AI-Powered Personalized Networking Assistant")
+    st.divider()
+    st.write("✅ Conversation Starters")
     st.write("✅ Networking Tips")
     st.write("✅ Wikipedia Search")
+    st.write("✅ Download Results")
 
+st.title("🤝 AI Personalized Networking Assistant")
 
-# Title
-st.title("🤝 Smart Bridge")
-st.markdown("### AI-Powered Personalized Networking Assistant")
-st.write(
-    "Build meaningful professional connections using AI-generated personalized networking suggestions."
-)
+c1,c2=st.columns(2)
+with c1:
+    name=st.text_input("Name")
+    profession=st.selectbox("Profession",["Student","Professional","Entrepreneur"])
+    experience=st.selectbox("Experience",["Student","Fresher","1-3 Years","Experienced"])
+with c2:
+    goal=st.selectbox("Networking Goal",["Internship","Job","Learning","Collaboration"])
+    tone=st.selectbox("Conversation Style",["Professional","Friendly","Confident","Casual"])
+    company=st.text_input("Company (Optional)")
 
-st.write(
-    "Generate smart conversation starters and networking tips "
-    "for professional events using AI."
-)
+event=st.text_input("Event Name")
+desc=st.text_area("Event Description")
 
-st.subheader("👤 Your Profile")
+def generate():
+    prompt=f"""
+You are an AI Networking Assistant.
 
-name = st.text_input(
-    "Your Name",
-    placeholder="Enter your name"
-)
-
-profession = st.selectbox(
-    "Profession",
-    ["Student", "Professional", "Entrepreneur"]
-)
-
-goal = st.selectbox(
-    "Networking Goal",
-    ["Internship", "Job", "Learning", "Collaboration"]
-)
-
-# Inputs
-event_name = st.text_input(
-    "Enter Event Name",
-    placeholder="Example: AI Innovation Summit"
-)
-
-event_description = st.text_area(
-    "Describe the Event",
-    placeholder="Example: A conference about AI, ML and emerging technologies."
-)
-
-
-# Gemini Function
-def generate_suggestions(event, description):
-
-    prompt = f"""
-You are an AI-powered Personalized Networking Assistant.
-
-User Profile:
-Name: {name}
-Profession: {profession}
-Networking Goal: {goal}
-
-Event Name:
-{event}
-
-Event Description:
-{description}
+Name:{name}
+Profession:{profession}
+Experience:{experience}
+Goal:{goal}
+Tone:{tone}
+Company:{company}
+Event:{event}
+Description:{desc}
 
 Generate:
-
-1. Five personalized conversation starters based on the user's profession and networking goal.
-2. Three networking tips specific to the user's goal.
-3. Two interesting questions the user can ask other attendees.
-
-Keep the response friendly, professional, and easy to use.
+1. Five personalized conversation starters.
+2. Three networking tips.
+3. Two questions to ask attendees.
+4. One LinkedIn connection message.
 """
-
-    response = client.models.generate_content(
-        model="gemini-flash-latest",
-        contents=prompt
-    )
-
-    return response.text
-
-
-# Generate Button
-if st.button("✨ Generate Conversation Starters"):
-
-    if event_name and event_description:
-
-        with st.spinner("Generating suggestions..."):
-
+    return client.models.generate_content(model="gemini-flash-latest",contents=prompt).text
+if st.button("✨ Generate"):
+    if event and desc:
+        with st.spinner("🤖 Generating..."):
             try:
-                result = generate_suggestions(
-                    event_name,
-                    event_description
-                )
-
-                st.success("Suggestions Generated!")
-
+                result=generate()
+                st.session_state.history.append(result)
+                st.success("Done!")
                 st.markdown(result)
-
+                st.download_button("📥 Download",result,file_name="networking_suggestions.txt")
             except Exception as e:
-                st.error(f"Error: {e}")
-
+                st.error(e)
     else:
-        st.warning("Please enter event name and description.")
+        st.warning("Enter event details.")
 
-
-# Wikipedia Section
 st.divider()
-
-st.subheader("🔍 Explore Topics")
-
-topic = st.text_input(
-    "Enter a topic to search"
-)
-
+topic=st.text_input("Wikipedia Topic")
 if st.button("Search Wikipedia"):
-
     if topic:
         try:
-            summary = wikipedia.summary(
-                topic,
-                sentences=3
-            )
-
-            st.info(summary)
-
-        except:
+            st.info(wikipedia.summary(topic,sentences=3))
+        except Exception:
             st.error("No information found.")
 
-    else:
-        st.warning("Please enter a topic.")
+if st.session_state.history:
+    st.divider()
+    st.subheader("History")
+    for i,h in enumerate(reversed(st.session_state.history),1):
+        with st.expander(f"Response {i}"):
+            st.markdown(h)
+
 st.divider()
 st.caption("Developed by Pragathi & Pravallika")
