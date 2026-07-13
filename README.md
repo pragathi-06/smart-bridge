@@ -17,4 +17,4 @@ Smart Bridge is an AI-powered networking assistant built using Streamlit and Goo
 - Wikipedia API
 
 ## Developed By
-Team Smart Bridge
+Pragathi & Pravallika
